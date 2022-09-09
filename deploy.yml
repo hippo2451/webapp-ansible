@@ -3,6 +3,13 @@
   hosts: prod
   become: true
   pre_tasks:
+    - name: install some package
+      ansible.builtin.package: 
+        name:'{{ item }}' state: present
+      when: ansible_distribution == 'Centos'
+      loop:
+        - wget
+        - git
     - name: download pip script
       get_url:
         url: https://bootstrap.pypa.io/pip/2.7/get-pip.py
@@ -12,11 +19,17 @@
       changed_when: false
 
     - name: Install docker python
-      pip: name=docker-py 
+      pip: name=docker-py
   tasks:
-  - name: Create a docker container
-    docker_container:
-      name: webapp
-      image: httpd
-      ports:
-       - "80:80"
+    - name: copy site template
+      ansible.builtin.template:
+        src: index.html.j2
+        dest: /home/admin/index.html
+    - name: Create a docker container
+      docker_container:
+        name: webapp
+        image: httpd
+        ports:
+          - "80:80"
+        volumes:
+          - /home/admin/index.html:/usr/local/apache2/htdocs/index.html
